@@ -117,17 +117,20 @@ typedef NS_ENUM(NSUInteger, STPopupTransitionStyle) {
  */
 @property (nullable, nonatomic, strong) UIView *backgroundView;
 
+@property (nonatomic, strong, readonly) UIPageControl *pageControl;
+
 /**
  Container view which is containing the navigation bar and content of top most view controller.
  By default its background color is set to white and clipsToBounds is set to YES.
  */
 @property (nonatomic, strong, readonly) UIView *containerView;
-
+@property (nonatomic, assign) BOOL isScrolling;
 /**
  *  The top view controller in the popup's controller stack.
  */
 @property (nullable, nonatomic, strong, readonly) UIViewController *topViewController;
 
+@property (nonatomic, strong) UIScrollView *scrollView;
 /**
  Indicates if the popup is current presented.
  */
@@ -173,14 +176,6 @@ typedef NS_ENUM(NSUInteger, STPopupTransitionStyle) {
  Pop the top most view controller out of view controllers stack with animated flag.
  */
 - (void)popViewControllerAnimated:(BOOL)animated;
-
-
-/**
- Pops all view controllers from the stack until it reaches the root view controller
-
- @param animated YES if animated
- */
-- (void)popToRootViewControllerAnimated:(BOOL)animated;
 
 /**
  Set hidden status of navigation bar with animated flag.

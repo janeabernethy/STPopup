@@ -50,7 +50,7 @@ static NSMutableSet *_retainedPopupControllers;
 
 @end
 
-@interface STPopupContainerViewController : UIViewController
+@interface STPopupContainerViewController : UIViewController <UIScrollViewDelegate>
 
 @end
 
@@ -154,7 +154,7 @@ static NSMutableSet *_retainedPopupControllers;
 
 - (UIViewController *)topViewController
 {
-  return _viewControllers.lastObject;
+    return _viewControllers.lastObject;
 }
 
 - (BOOL)presented
@@ -333,26 +333,6 @@ static NSMutableSet *_retainedPopupControllers;
     topViewController.popupController = nil;
 }
 
-
-- (void)popToRootViewControllerAnimated:(BOOL)animated
-{
-    if (_viewControllers.count <= 1) {
-        return;
-    }
-    
-    UIViewController *firstViewController = _viewControllers.firstObject;
-    UIViewController *lastViewController = _viewControllers.lastObject;
-    for (int i = 1; i < _viewControllers.count; i++) {
-        [self destroyObserversOfViewController:_viewControllers[i]];
-    }
-    _viewControllers = [NSMutableArray arrayWithObject:firstViewController];
-    
-    if (self.presented) {
-        [self transitFromViewController:lastViewController toViewController:firstViewController animated:animated];
-    }
-}
-
-
 - (void)transitFromViewController:(UIViewController *)fromViewController toViewController:(UIViewController *)toViewController animated:(BOOL)animated
 {
     [fromViewController beginAppearanceTransition:NO animated:animated];
@@ -365,26 +345,26 @@ static NSMutableSet *_retainedPopupControllers;
         // Capture view in "fromViewController" to avoid "viewWillAppear" and "viewDidAppear" being called.
         UIGraphicsBeginImageContextWithOptions(fromViewController.view.bounds.size, NO, [UIScreen mainScreen].scale);
         [fromViewController.view drawViewHierarchyInRect:fromViewController.view.bounds afterScreenUpdates:NO];
-
-        UIImageView *capturedView = [[UIImageView alloc] initWithImage:UIGraphicsGetImageFromCurrentImageContext()];
+        
+        //  UIImageView *capturedView = [[UIImageView alloc] initWithImage:UIGraphicsGetImageFromCurrentImageContext()];
         
         UIGraphicsEndImageContext();
         
-        capturedView.frame = CGRectMake(_contentView.frame.origin.x, _contentView.frame.origin.y, fromViewController.view.bounds.size.width, fromViewController.view.bounds.size.height);
-        [_containerView insertSubview:capturedView atIndex:0];
+        //   capturedView.frame = CGRectMake(_contentView.frame.origin.x, _contentView.frame.origin.y, fromViewController.view.bounds.size.width, fromViewController.view.bounds.size.height);
+        // [_containerView insertSubview:capturedView atIndex:0];
         
         [fromViewController.view removeFromSuperview];
         
-        _containerView.userInteractionEnabled = NO;
+        _containerView.userInteractionEnabled = YES;
         toViewController.view.alpha = 0;
         [UIView animateWithDuration:0.5 delay:0 usingSpringWithDamping:1 initialSpringVelocity:0 options:UIViewAnimationOptionCurveEaseInOut animations:^{
             [self layoutContainerView];
             [_contentView addSubview:toViewController.view];
-            capturedView.alpha = 0;
+            //      capturedView.alpha = 0;
             toViewController.view.alpha = 1;
             [_containerViewController setNeedsStatusBarAppearanceUpdate];
         } completion:^(BOOL finished) {
-            [capturedView removeFromSuperview];
+            //     [capturedView removeFromSuperview];
             [fromViewController removeFromParentViewController];
             
             _containerView.userInteractionEnabled = YES;
@@ -417,13 +397,13 @@ static NSMutableSet *_retainedPopupControllers;
     
     UIViewController *topViewController = self.topViewController;
     UIView *lastTitleView = _navigationBar.topItem.titleView;
-    _navigationBar.items = @[ [UINavigationItem new] ];
-    _navigationBar.topItem.leftBarButtonItems = topViewController.navigationItem.leftBarButtonItems ? : (topViewController.navigationItem.hidesBackButton ? nil : @[ _defaultLeftBarItem ]);
-    _navigationBar.topItem.rightBarButtonItems = topViewController.navigationItem.rightBarButtonItems;
-    if (self.hidesCloseButton && topViewController == _viewControllers.firstObject &&
-        _navigationBar.topItem.leftBarButtonItem == _defaultLeftBarItem) {
-        _navigationBar.topItem.leftBarButtonItems = nil;
-    }
+    //    _navigationBar.items = @[ [UINavigationItem new] ];
+    //    _navigationBar.topItem.leftBarButtonItems = topViewController.navigationItem.leftBarButtonItems ? : (topViewController.navigationItem.hidesBackButton ? nil : @[ _defaultLeftBarItem ]);
+    //    _navigationBar.topItem.rightBarButtonItems = topViewController.navigationItem.rightBarButtonItems;
+    //    if (self.hidesCloseButton && topViewController == _viewControllers.firstObject &&
+    //        _navigationBar.topItem.leftBarButtonItem == _defaultLeftBarItem) {
+    //        _navigationBar.topItem.leftBarButtonItems = nil;
+    //    }
     
     if (animated) {
         UIView *fromTitleView, *toTitleView;
@@ -512,13 +492,15 @@ static NSMutableSet *_retainedPopupControllers;
 - (void)layoutContainerView
 {
     _backgroundView.frame = _containerViewController.view.bounds;
- 
+    
+    CGFloat pageControlHeight = 40;
     CGFloat preferredNavigationBarHeight = [self preferredNavigationBarHeight];
     CGFloat navigationBarHeight = _navigationBarHidden ? 0 : preferredNavigationBarHeight;
     CGSize contentSizeOfTopView = [self contentSizeOfTopView];
     CGFloat containerViewWidth = contentSizeOfTopView.width;
-    CGFloat containerViewHeight = contentSizeOfTopView.height + navigationBarHeight;
+    CGFloat containerViewHeight = contentSizeOfTopView.width + pageControlHeight;
     CGFloat containerViewY = (_containerViewController.view.bounds.size.height - containerViewHeight) / 2;
+    _contentView.clipsToBounds = YES;
     
     if (self.style == STPopupStyleBottomSheet) {
         containerViewY = _containerViewController.view.bounds.size.height - containerViewHeight;
@@ -528,10 +510,66 @@ static NSMutableSet *_retainedPopupControllers;
     _containerView.frame = CGRectMake((_containerViewController.view.bounds.size.width - containerViewWidth) / 2,
                                       containerViewY, containerViewWidth, containerViewHeight);
     _navigationBar.frame = CGRectMake(0, 0, containerViewWidth, preferredNavigationBarHeight);
-    _contentView.frame = CGRectMake(0, navigationBarHeight, contentSizeOfTopView.width, contentSizeOfTopView.height);
+    _contentView.frame = CGRectMake(0, navigationBarHeight, contentSizeOfTopView.width, containerViewHeight - pageControlHeight);
+    _contentView.layer.cornerRadius = 10.0;
     
-    UIViewController *topViewController = self.topViewController;
-    topViewController.view.frame = _contentView.bounds;
+    _scrollView.frame = _contentView.bounds;
+    _scrollView.backgroundColor = [UIColor grayColor];
+    _scrollView.showsHorizontalScrollIndicator = NO;
+    _scrollView.bounces = NO;
+    _scrollView.delegate = self;
+    
+    UIImageView *prev1 = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"prev1.png"]];
+    UIImageView *prev2 = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"prev2.png"]];
+    UIImageView *prev3 = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"prev3.png"]];
+    
+    prev1.frame = CGRectMake(0, 0, _contentView.frame.size.width, _contentView.frame.size.width);
+    prev2.frame = CGRectMake(_contentView.frame.size.width, 0, _contentView.frame.size.width, _contentView.frame.size.width);
+    prev3.frame = CGRectMake(_contentView.frame.size.width * 2, 0, _contentView.frame.size.width, _contentView.frame.size.width);
+    
+    prev1.contentMode = UIViewContentModeScaleAspectFit;
+    prev2.contentMode = UIViewContentModeScaleAspectFit;
+    prev3.contentMode = UIViewContentModeScaleAspectFit;
+    
+    _scrollView.pagingEnabled = YES;
+    _scrollView.contentSize = CGSizeMake(_contentView.frame.size.width * 3, _contentView.frame.size.height);
+    [_scrollView addSubview:prev1];
+    [_scrollView addSubview:prev2];
+    [_scrollView addSubview:prev3];
+    
+    
+    _pageControl.frame = CGRectMake(0, _contentView.frame.size.height, _contentView.frame.size.width, pageControlHeight);
+    _pageControl.alpha = 0.0;
+    _pageControl.numberOfPages = 3;
+    
+}
+
+
+- (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate {
+    if (!decelerate) {
+        _isScrolling = FALSE;
+    }
+}
+
+- (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView {
+    _isScrolling = FALSE;
+}
+
+- (void)scrollViewDidEndScrollingAnimation:(UIScrollView *)scrollView {
+    _isScrolling = FALSE;
+}
+
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView {
+    _isScrolling = YES;
+    CGFloat width = scrollView.frame.size.width;
+    CGFloat page = scrollView.contentOffset.x / width;
+    if (page < 1) {
+        [_pageControl setCurrentPage:0];
+    } else if (page < 2) {
+        [_pageControl setCurrentPage:1];
+    } else {
+        [_pageControl setCurrentPage:2];
+    }
 }
 
 - (CGSize)contentSizeOfTopView
@@ -560,10 +598,7 @@ static NSMutableSet *_retainedPopupControllers;
 
 - (CGFloat)preferredNavigationBarHeight
 {
-    // The preferred height of navigation bar is different between iPhone (4, 5, 6) and 6 Plus.
-    // Create a navigation controller to get the preferred height of navigation bar.
-    UINavigationController *navigationController = [UINavigationController new];
-    return navigationController.navigationBar.bounds.size.height;
+    return 0;
 }
 
 #pragma mark - UI setup
@@ -581,10 +616,15 @@ static NSMutableSet *_retainedPopupControllers;
     _containerViewController.transitioningDelegate = self;
     [self setupBackgroundView];
     [self setupContainerView];
-    [self setupNavigationBar];
+    //   [self setupNavigationBar];
     
     _transitioningSlideVertical = [STPopupControllerTransitioningSlideVertical new];
     _transitioningFade = [STPopupControllerTransitioningFade new];
+    
+    UIScrollView *scrollView = [[UIScrollView alloc] initWithFrame:_contentView.bounds];
+    scrollView.backgroundColor = [UIColor redColor];
+    [_containerView addSubview:scrollView];
+    
 }
 
 - (void)setupBackgroundView
@@ -597,19 +637,24 @@ static NSMutableSet *_retainedPopupControllers;
 - (void)setupContainerView
 {
     _containerView = [UIView new];
-    _containerView.backgroundColor = [UIColor whiteColor];
+    _containerView.backgroundColor = [UIColor clearColor];
     _containerView.clipsToBounds = YES;
     [_containerViewController.view addSubview:_containerView];
     
     _contentView = [UIView new];
     [_containerView addSubview:_contentView];
+    
+    _scrollView = [UIScrollView new];
+    [_contentView addSubview:_scrollView];
+    _pageControl = [UIPageControl new];
+    [_containerView addSubview:_pageControl];
 }
 
 - (void)setupNavigationBar
 {
     STPopupNavigationBar *navigationBar = [STPopupNavigationBar new];
     navigationBar.touchEventDelegate = self;
-    
+    navigationBar.backgroundColor = [UIColor grayColor];
     _navigationBar = navigationBar;
     [_containerView addSubview:_navigationBar];
     
@@ -848,14 +893,14 @@ static NSMutableSet *_retainedPopupControllers;
         [toViewController addChildViewController:topViewController];
         
         [self layoutContainerView];
-        [_contentView addSubview:topViewController.view];
+        // [_contentView addSubview:topViewController.view];
         [toViewController setNeedsStatusBarAppearanceUpdate];
         [self updateNavigationBarAniamted:NO];
         
         CGFloat lastBackgroundViewAlpha = _backgroundView.alpha;
         _backgroundView.alpha = 0;
-        _backgroundView.userInteractionEnabled = NO;
-        _containerView.userInteractionEnabled = NO;
+        _backgroundView.userInteractionEnabled = YES;
+        _containerView.userInteractionEnabled = YES;
         _containerView.transform = CGAffineTransformIdentity;
         
         [UIView animateWithDuration:[transitioning popupControllerTransitionDuration:context] delay:0 usingSpringWithDamping:1 initialSpringVelocity:1 options:UIViewAnimationOptionCurveEaseInOut animations:^{
@@ -878,8 +923,8 @@ static NSMutableSet *_retainedPopupControllers;
         [topViewController willMoveToParentViewController:nil];
         
         CGFloat lastBackgroundViewAlpha = _backgroundView.alpha;
-        _backgroundView.userInteractionEnabled = NO;
-        _containerView.userInteractionEnabled = NO;
+        _backgroundView.userInteractionEnabled = YES;
+        _containerView.userInteractionEnabled = YES;
         
         [UIView animateWithDuration:[transitioning popupControllerTransitionDuration:context] delay:0 options:UIViewAnimationOptionCurveEaseOut animations:^{
             _backgroundView.alpha = 0;

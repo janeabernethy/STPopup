@@ -32,7 +32,7 @@
         containerView.transform = CGAffineTransformIdentity;
         CGFloat originY = containerView.frame.origin.y;
         containerView.transform = lastTransform;
-
+        
         [UIView animateWithDuration:[self popupControllerTransitionDuration:context] delay:0 options:UIViewAnimationOptionCurveEaseOut animations:^{
             containerView.transform = CGAffineTransformMakeTranslation(0, containerView.superview.bounds.size.height - originY + containerView.frame.size.height);
         } completion:^(BOOL finished) {

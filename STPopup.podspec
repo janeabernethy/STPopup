@@ -15,12 +15,12 @@ Pod::Spec.new do |s|
                     - Support both portrait and landscape orientation, and both iPhone and iPad.
                     DESC
 
-  s.homepage     = "https://github.com/kevin0571/STPopup"
+  s.homepage     = "https://github.com/janeabernethy/STPopup"
   s.license      = { :type => "MIT", :file => "LICENSE" }
   s.author       = { "Kevin Lin" => "kevin_lyn@outlook.com" }
 
   s.platform     = :ios, "7.0"
-  s.source       = { :git => "https://github.com/kevin0571/STPopup.git", :tag => s.version }
+  s.source       = { :git => "https://github.com/janeabernethy/STPopup.git", :tag => s.version }
 
   s.source_files = "STPopup/*.{h,m}"
   s.public_header_files = "STPopup/*.h"
